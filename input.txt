@@ -1,0 +1,6 @@
+# Meaning column by column
+# No.    Totalbin    R_min(m)    R_max(m)    Totaltime_inKyr    Timestep_inyr    Record_interval_inyr    v_frag_th(m/s)    v_disr_th(m/s)    pMass_tot_i(M_earth)    pMass_i(M_earth)    Rho_solid(kg/m^3)    Acc_rate(M_solar/yr)    GPratio_i    R_inau    R_trun(m)    Index_init    Q_lr    Alpha    Fa    Z_rel
+# Notice that Totalbin must be integer, we can't support science notation now
+01 1000 1.0 100 10.0 5.0 100.0 25.0 100.0 2.0 1.0 3.0e3 5.0e-8 0.90 0.1 2.5 0.75 0.3 0.001 1.0 1.0
+#01 1000 1 10000 0.01 1.0 5.0 20.0 100.0 2.0 1.0 3.0e3 1.0e-8 0.01 0.1 2.5 0.75 0.3 0.001 1.0 1.0
+#end
