@@ -12,6 +12,7 @@
 #include <iostream>
 #include "pre_define.h"
 
+
 /** calculate the both coagulation and fragmentation in gravity regime between two mass bins **/
 int cog_frag_ingrav(long &i, long &j);
 

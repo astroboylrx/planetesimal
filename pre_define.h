@@ -10,11 +10,17 @@
 #define __planetesimal__pre_define__
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <mpi.h>
+using namespace std;
+
+
 //#include book: Astrophysics of Planet Formation by PHILIP J. ARMITAGE, hereafter A's Book
 //#include paper: Chiang, Youdin 2010, hereafter CY2010
 //                F. Brauer et al. 2008: Particle growth around the snow line, hereafter B2008
@@ -64,7 +70,7 @@
 #define R_star          (1.7*R_solar)
 #define T_eff           (4350)
 #define gMass_d         (100*M_earth)        // default total gas mass
-#define GPratio_d       (0.05)               // default dust-to-gas ratio
+#define GPratio_d       (0.005)               // default dust-to-gas ratio
 
 /***** global classes: *****/
 class C_Parameter {
@@ -98,7 +104,7 @@ public:
     double R_inau;
     double R_trun;                          // truncate radius for the largest planetesimals existing initially
     double Index_init;                      // parameter for initial mass distribution and velocity damping factor (relate to inertia): index number
-    double Q_lr;                            // the largest post-collision remnant mass ratio relative to the total mass
+    double Q_lr;                            // the largest post-collision remnant mass ratio relative to the total mass in non-gravity regime
     double Alpha;                           // the Shakura–Sunyaev alpha parameter
 
     // below from YS2010
@@ -137,10 +143,12 @@ public:
     double Volume_factor_earth;
     double Volume_factor_solid;
     double pAcc_rate;
+    double pAcc_intoback;
     double gVolume;
     double pVolume;
     double R_well_coupled;                  // unit: m, used in calculating velocity disperison
     double R_in_grav_regime;                // unit: m, used in calculating velocity disperison
+    double R_in_ep_regime;                  // unit: m, used in calculating velocity dispersion, ep means energy equipartition
     double mean_H_ratio;                    // average scale height ratio of gas and dust
     // below from LS2012
     double B_totseg;                        // how many segments to divide
@@ -167,7 +175,8 @@ public:
 
     FILE *fi;
     
-    char outputpath[250];
+    int conti;
+    char outputpath[250], cont[10];
     char f_output[250], f_distribution[250], f_mass[250], f_coag[250], f_frag[250], f_vd[250];
     FILE *fo, *fd, *fm, *fc, *ff, *fv;
     
@@ -186,6 +195,13 @@ public:
     /** print data result **/
     int dataoutput(long count_column);
     
+    /** read the last line of file **/
+    char *readlastline(FILE *readfile);
+    std::string readlastline_cpp(char *filename);
+    
+    /** read the data file into 2-d array **/
+    int read_2d_array(FILE *readfile);
+    
     int closeoutput();
     ~C_FileOp();
     
@@ -198,8 +214,9 @@ class C_Delta {
 public:
     double *delta_n;
     //double *delta_Ek_rel;
-    double *delta_n_coag, *delta_n_frag, *delta_n_disr, *delta_n_hitr;
-    double *delta_n_cond, *delta_n_accr;
+    double *delta_n_coag, *delta_n_frag, *delta_n_accr;
+    //double *delta_n_disr, *delta_n_hitr;
+    double *delta_n_cond;
     
     C_Delta(long n);
     ~C_Delta();
@@ -220,7 +237,7 @@ private:
 class C_Storage {
 public:
     double **result;
-    double **coag, **frag, **disr, **hitr, **cond, **accr;
+    double **coag, **frag, **cond, **accr; //**disr, **hitr,
     double *GPratio, *Evotime;
     //double **Ek_evo;
     
@@ -254,9 +271,8 @@ double *m, *m_inearth;                                          // auxiliary arr
 double *v_d_set, *v_d_tur, **v_d_relative;                      // velocity dispersion for each bin
 double *r;                                                      // radius for m[]
 double *dens;                                                   // density for m[]
-double **CC;                                                    // collisional kernel
-double **Cij, **Fij;                                            // collisional kernel times probability
-double **Cz, **Fz;
+double **GCS;                                                   // geometrical crossing section
+double **MEV;                                                   // mutual escape velocity in direct impact
 
 /** need to update every timestep!!!!!!!!: **/
 C_Parameter *para;
@@ -264,11 +280,16 @@ C_FileOp *fop;
 C_Delta *delta;
 C_Storage *storage;
 double pMass_tot, pMass_back, pMass, pMass_ghost, GPratio, pMass_con;
-double pArea_tot, *pArea_ratio, *pArea, **partn;
 //double totEk;
 
 /** timer: **/
 clock_t start_t, end_t;
+
+/** for MPI **/
+int myid, master, numprocs;
+long myregime;
+double *tempdelta_coag, *tempdelta_frag, tempghost, tempback;
+MPI_Status status;
 
 #else
 
@@ -281,9 +302,9 @@ extern double *m, *m_inearth;                                   // auxiliary arr
 extern double *v_d_set, *v_d_tur, **v_d_relative;               // velocity dispersion for each bin
 extern double *r;                                               // radius for m[]
 extern double *dens;                                            // density for m[]
-extern double **CC;                                             // collisional kernel
-extern double **Cij, **Fij;                                     // collisional kernel times probability
-extern double **Cz, **Fz;
+extern double **GCS;                                            // geometrical crossing section
+extern double **MEV;                                            // mutual escape velocity in direct impact
+
 
 /** need to update every timestep!!!!!!!!: **/
 extern C_Parameter *para;
@@ -291,11 +312,16 @@ extern C_FileOp *fop;
 extern C_Delta *delta;
 extern C_Storage *storage;
 extern double pMass_tot, pMass_back, pMass, pMass_ghost, GPratio, pMass_con;
-extern double pArea_tot, *pArea_ratio, *pArea, **partn;
 //extern double totEk;
 
 /** timer: **/
 extern clock_t start_t, end_t;
+
+/** for MPI **/
+extern int myid, master, numprocs;
+extern long myregime;
+extern double *tempdelta_coag, *tempdelta_frag, tempghost, tempback;
+extern MPI_Status status;
 
 #endif /* #ifdef MAIN_C */
 

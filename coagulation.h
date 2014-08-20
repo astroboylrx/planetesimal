@@ -12,7 +12,8 @@
 #include <iostream>
 #include "pre_define.h"
 
-/** calculate the coagulation between two mass bins **/
+
+/** calculate the coagulation between two small-mass bins **/
 int coagulation(long &i, long &j);
 
 #endif /* defined(__planetesimal__coagulation__) */

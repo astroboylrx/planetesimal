@@ -1,28 +1,30 @@
-CC = g++
+EXEC   = planetesimal
 
-CFLAGS = -c -Wall -g
+OPTIMIZE  =  -O2  -m64 
 
-OPTIMIZE = -O2
+OPTIMIZE += $(OPTS)
 
-LDFLAGS = -g
+OBJS  =  main.o coagulation.o fragmentation.o condensation.o cog_frag_ingrav.o pre_define.o
 
-LIBS   = #-lm -lgsl -lgslcblas
+CC     = mpicxx
 
-SOURCES = disruption.cpp main.cpp coagulation.cpp fragmentation.cpp condensation.cpp cog_frag_ingrav.cpp pre_define.cpp
+INCL   = coagulation.h fragmentation.h condensation.h cog_frag_ingrav.h pre_define.h
 
-OBJECTS = $(SOURCES:.cpp=.o)
+LIBS   = -lmpicxx -lmpi -lpmpi -lpthread
 
-EXEC = planetesimal
+CFLAGS  = $(OPTIMIZE) -I/opt/local/include/mpich-mp/
+CPPFLAGS  = $(OPTIMIZE) -I/opt/local/include/mpich-mp/
+LDFLAGS = -m64 
 
-all: $(SOURCES) $(EXEC)
+$(EXEC): $(OBJS) 
+	 $(CC) $(OBJS) $(LDFLAGS)  $(LIBS) -o $(EXEC)
+	 rm -f $(OBJS)   
 
-$(EXEC): $(OBJECTS) 
-	$(CC) $(OPTIMIZE) $(LDFLAGS) $(OBJECTS)  $(LIBS) -o $@
-
-.cpp.o:
-	$(CC) $(OPTIMIZE) $(CFLAGS) $< -o $@
+$(OBJS): $(INCL) 
 
 .PHONY : clean
 
 clean:
-	 rm -f $(OBJECTS) $(EXEC)
+	 rm -f $(OBJS) $(EXEC)
+     
+

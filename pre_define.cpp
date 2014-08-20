@@ -8,6 +8,7 @@
 
 #include "pre_define.h"
 
+
 /** member functions for class Parameter **/
 int C_Parameter::DeriveParameter()
 {
@@ -49,9 +50,11 @@ int C_Parameter::DeriveParameter()
     
     pAcc_rate = (Acc_rate * Timestep * GPratio_d);
     gVolume = gMass_tot_i / Rho_gas;
-    pVolume = gVolume * sqrt(para->Alpha);
+    //pVolume = gVolume * sqrt(para->Alpha);
+    pVolume = Pi * R_preset * R_preset * Scale_h;
     
     R_in_grav_regime = 10000.0;
+    R_in_ep_regime = 1000000.0;
     R_well_coupled = 0.001;
     //mean_H_ratio = 0.01;
     mean_H_ratio = sqrt(Alpha);
@@ -59,27 +62,27 @@ int C_Parameter::DeriveParameter()
     
     c_star = 5;
     miu_bar = 0.37;
-    countnumber = (long *)malloc(sizeof(long)*10);
-    for (int ii = 0; ii < 10; ii++) {
+    countnumber = (long *)malloc(sizeof(long)*100);
+    for (int ii = 0; ii < 100; ii++) {
         countnumber[ii] = 0;
     }
+    
     return 0;
 }
 
 /** member functions for class Delta **/
 int C_FileOp::openinput()
 {
-    
-    if ((fi = fopen("/Users/isaac/Documents/Xcodestudy/planetesimal/planetesimal/input.txt", "r")) != NULL) {
+    if ((fi = fopen("input.txt", "r")) != NULL) {
+        return 0;
+    }
+    if ((fi = fopen("/Users/isaac/Documents/Dropbox/ProgramOS/Xcodestudy/planetesimal_mpi/planetesimal_mpi/input.txt", "r")) != NULL) {
         return 0;
     }
     if ((fi = fopen("input", "r")) != NULL) {
         return 0;
     }
     if ((fi = fopen("INPUT", "r")) != NULL) {
-        return 0;
-    }
-    if ((fi = fopen("input.txt", "r")) != NULL) {
         return 0;
     }
     if ((fi = fopen("input.dat", "r")) != NULL) {
@@ -97,14 +100,14 @@ int C_FileOp::readinput(C_Parameter * para)
 {
     char temp[500];
     if (!feof(fop->fi)) {
-       
+        
         fgets(temp, 500, fop->fi);
         while (temp[0] == '#') {
-                if (!feof(fop->fi)) {
-                    fgets(temp, 500, fop->fi);
-                } else {
-                    return 1;
-                }
+            if (!feof(fop->fi)) {
+                fgets(temp, 500, fop->fi);
+            } else {
+                return 1;
+            }
         }
         printf("%s\n", temp);
         sscanf(temp, "%d%ld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &para->Order_number, &para->Totalbin, &para->R_min, &para->R_max, &para->Totaltime_inKyr, &para->Timestep_inyr, &para->Record_interval_inyr, &para->v_frag_th, &para->v_disr_th, &para->pMass_tot_i, &para->pMass_i, &para->Rho_solid, &para->Acc_rate, &para->GPratio_i, &para->R_inau, &para->R_trun, &para->Index_init, &para->Q_lr, &para->Alpha, &para->Fa, &para->Z_rel);
@@ -148,7 +151,7 @@ int C_FileOp::filename_gen(C_Parameter * para)
     strcpy(f_coag, outputpath);
     strcpy(f_frag, outputpath);
     strcpy(f_vd, outputpath);
-
+    
     i = 0;
     do {
         i++;
@@ -177,9 +180,64 @@ int C_FileOp::filename_gen(C_Parameter * para)
     return 0;
 }
 
+int C_FileOp::openoutput()
+{
+    if (fop->conti == 0) {
+        if ((fo = fopen(f_output, "w")) == NULL) {
+            printf("Fail to open output file: %s \n", f_output);
+            exit(1);
+        }
+        if ((fd = fopen(f_distribution, "w")) == NULL) {
+            printf("Fail to open output file: %s \n", f_distribution);
+            exit(1);
+        }
+        if ((fm = fopen(f_mass, "w")) == NULL) {
+            printf("Fail to open output file: %s \n", f_mass);
+            exit(1);
+        }
+        if ((fc = fopen(f_coag, "w")) == NULL) {
+            printf("Fail to open output file: %s \n", f_coag);
+            exit(1);
+        }
+        if ((ff = fopen(f_frag, "w")) == NULL) {
+            printf("Fail to open output file: %s \n", f_frag);
+            exit(1);
+        }
+        if ((fv = fopen(f_vd, "w")) == NULL) {
+            printf("Fail to open output file: %s \n", f_vd);
+            exit(1);
+        }
+    } else {
+        if ((fo = fopen(f_output, "a+")) == NULL) {
+            printf("Fail to open output file: %s \n", f_output);
+            exit(1);
+        }
+        if ((fd = fopen(f_distribution, "a+")) == NULL) {
+            printf("Fail to open output file: %s \n", f_distribution);
+            exit(1);
+        }
+        if ((fm = fopen(f_mass, "a+")) == NULL) {
+            printf("Fail to open output file: %s \n", f_mass);
+            exit(1);
+        }
+        if ((fc = fopen(f_coag, "a+")) == NULL) {
+            printf("Fail to open output file: %s \n", f_coag);
+            exit(1);
+        }
+        if ((ff = fopen(f_frag, "a+")) == NULL) {
+            printf("Fail to open output file: %s \n", f_frag);
+            exit(1);
+        }
+        if ((fv = fopen(f_vd, "w")) == NULL) {
+            printf("Fail to open output file: %s \n", f_vd);
+            exit(1);
+        }
+    }
+    
+    return 0;
+}
 
-
-
+/*
 int C_FileOp::openoutput()
 {
     if ((fo = fopen(f_output, "w")) == NULL) {
@@ -208,13 +266,12 @@ int C_FileOp::openoutput()
     }
     return 0;
 }
-
+//*/
 
 int C_FileOp::print_paras()
-/** print initial parameters **/
 {
     fprintf(fo, "This file will present the initial parameters we used.\n");
-
+    
     fprintf(fo, "Total mass bins: %ld\n", para->Totalbin);
     fprintf(fo, "Radius of min mass bin: %f\n", para->R_min);
     fprintf(fo, "Radius of max mass bin: %f\n", para->R_max);
@@ -238,7 +295,7 @@ int C_FileOp::print_paras()
     fprintf(fo, "Radius of center star: %f R_solar\n", R_star / R_solar);
     fprintf(fo, "Disk Mass/M_MMSN = Fa: %f\n", para->Fa);
     fprintf(fo, "Disk Metalicity/Z_MMSN = Z_rel: %f\n", para->Z_rel);
-
+    
     fprintf(fo, "\n");
     fprintf(fo, "Designed evolution time: %f Kyr\n", para->Totaltime_inKyr);
     fprintf(fo, "Timestep: %fyr\n", para->Timestep_inyr);
@@ -246,7 +303,7 @@ int C_FileOp::print_paras()
     
     fprintf(fop->fm, "# This file will record the mass of the following in certain time, in unit of M_earth.\n");
 	fprintf(fop->fm, "#time(Kyr)\tplanetesimal\tbackground\tghost_mass\ttotal_mass\tgas_mass\tdust-to-gas ratio\n");
-
+    
     
     return 0;
 }
@@ -316,6 +373,102 @@ int C_FileOp::dataoutput(long count_column)
     return 0;
 }
 
+
+char *C_FileOp::readlastline(FILE *readfile)
+{
+    char *lastline;
+    long length;
+    fseek(readfile, -1, SEEK_END);
+    length = ftell(readfile);
+    if (length == 0) {
+        printf("The original data file is an empty file.");
+        exit(2);
+    }
+    int keeplooping = 1;
+    lastline = (char *)malloc(sizeof(char)*65536);
+    while (keeplooping) {
+        char ch;
+        ch = fgetc(readfile);
+        //printf("0 %d\n", (int)ftell(readfile));
+        if (ch == '\n') {
+            if ((int)ftell(readfile) == length+1) {
+                fseek(readfile, -2, SEEK_CUR);
+                //printf("1 %d\n", (int)ftell(readfile));
+                continue;
+            }
+            //printf("2 %d\n", (int)ftell(readfile));
+            keeplooping = 0;
+        } else {
+            //printf("3 %d\n", (int)ftell(readfile));
+            if((int)ftell(readfile) <= 1 ) {
+                printf("This file only has one line of data or text with another empty line.\n");
+                fseek(readfile, 0, SEEK_SET);
+                //printf("4 %d\n", (int)ftell(readfile));
+                keeplooping = 0;
+                continue;
+            }
+            //printf("5 %d\n", (int)ftell(readfile));
+            fseek(readfile, -2, SEEK_CUR);
+            //printf("6 %d\n", (int)ftell(readfile));
+        }
+    }
+    
+    fgets(lastline, 65536, readfile);
+    return lastline;
+}
+
+string C_FileOp::readlastline_cpp(char *filename)
+{
+    ifstream fin;
+    long length;
+    string lastLine;
+    fin.open(filename);
+    if(fin.is_open()) {
+        fin.seekg(-1,ios_base::end);                // go to one spot before the EOF
+        length = fin.tellg();
+        if(length == -1) {
+            cout << filename << "is an empty file." << endl;
+            return 0;
+        }
+        //cout << "length is " << length << endl;
+        bool keepLooping = true;
+        while(keepLooping) {
+            char ch;
+            fin.get(ch);                            // Get current byte's data
+            if(ch == '\n') {                   // If the data was a newline
+                //cout << "1" << (long)fin.tellg() << endl;
+                if(fin.tellg() == length+1) {
+                    fin.seekg(-2, ios_base::cur);
+                    //cout << "2" << (long)fin.tellg() << endl;
+                    continue;
+                }
+                keepLooping = false;                // Stop at the current position.
+            } else {                                  // If the data was neither a newline nor at the 0 byte
+                //cout << "4" << (long)fin.tellg() << endl;
+                fin.seekg(-2,ios_base::cur);        // Move to the front of that data, then to the front of the data before it
+                //cout << "5" << (long)fin.tellg() << endl;
+                if((long)fin.tellg() < 0) {
+                    cout << "This file only has one line of data or text with another empty line." << endl;
+                    fin.close();
+                    fin.open(filename);
+                    fin.seekg(0, ios_base::beg);
+                    //cout << "6" <<(long)fin.tellg() << endl;
+                    keepLooping = false;
+                }
+            }
+        }
+        //cout << "7" <<(long)fin.tellg() << endl;
+        getline(fin,lastLine);                      // Read the current line
+        //cout << "Result: " << lastLine << '\n';     // Display it
+        
+        fin.close();
+    }
+    return lastLine;
+    
+}
+
+
+
 int C_FileOp::closeoutput()
 {
     fclose(fd);
@@ -352,10 +505,13 @@ int C_Delta::AllocateSpace(long n)
     
     delta_n_coag = allocate_1d_array(n);
     delta_n_frag = allocate_1d_array(n);
-    delta_n_disr = allocate_1d_array(n);
-    delta_n_hitr = allocate_1d_array(n);
     delta_n_accr = allocate_1d_array(n);
     delta_n_cond = allocate_1d_array(n);
+    /*
+     delta_n_disr = allocate_1d_array(n);
+     delta_n_hitr = allocate_1d_array(n);
+     
+     */
     
     return 0;
 }
@@ -367,22 +523,25 @@ int C_Delta::InitializeDelta(long n)
         //delta_Ek_rel[i] = 0;
         delta_n_coag[i] = 0;
         delta_n_frag[i] = 0;
-        delta_n_disr[i] = 0;
-        delta_n_hitr[i] = 0;
         //delta_n_accr[i] = 0; this is preset
         delta_n_cond[i] = 0;
+        /*
+         delta_n_disr[i] = 0;
+         delta_n_hitr[i] = 0;
+         
+         */
     }
-
+    
     return 0;
 }
 
 int C_Delta::sum_delta_n(long i)
 {
     //if (i == 41) {
-    //    printf("%ld\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", i, n[i], delta_n_coag[i], delta_n_frag[i], delta_n_accr[i], delta_n_cond[i], delta_n_disr[i], delta_n_hitr[i]);
+    //printf("%ld\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n", i, n[i], delta_n_coag[i], delta_n_frag[i], delta_n_accr[i], delta_n_cond[i], delta_n_disr[i], delta_n_hitr[i]);
     //}
-    delta_n[i] = delta_n_coag[i] + delta_n_frag[i] + delta_n_accr[i]
-    + delta_n_cond[i] + delta_n_disr[i] + delta_n_hitr[i];
+    delta_n[i] += delta_n_coag[i] + delta_n_frag[i] + delta_n_accr[i] + delta_n_cond[i];
+    // + delta_n_disr[i] + delta_n_hitr[i];
     
     //for experiment
     if (n[i] + delta_n[i] < 0) {
@@ -401,10 +560,12 @@ C_Delta::~C_Delta()
     //free(delta_Ek_rel);
     free(delta_n_accr);
     free(delta_n_coag);
-    free(delta_n_cond);
-    free(delta_n_disr);
     free(delta_n_frag);
-    free(delta_n_hitr);
+    free(delta_n_cond);
+    /*
+     free(delta_n_disr);
+     free(delta_n_hitr);
+     */
 }
 
 /** member functions for class Storage **/
@@ -432,8 +593,8 @@ int C_Storage::AllocateSpace(long Record_times, long Totalbin)
     
     coag = allocate_2d_array(ceil(Record_times), Totalbin);     /* others store the separate contributions */
     frag = allocate_2d_array(ceil(Record_times), Totalbin);
-    disr = allocate_2d_array(ceil(Record_times), Totalbin);
-    hitr = allocate_2d_array(ceil(Record_times), Totalbin);    
+    //disr = allocate_2d_array(ceil(Record_times), Totalbin);
+    //hitr = allocate_2d_array(ceil(Record_times), Totalbin);
     cond = allocate_2d_array(ceil(Record_times), Totalbin);;
     accr = allocate_2d_array(ceil(Record_times), Totalbin);;
     GPratio = (double *)malloc(Record_times * sizeof(double));
@@ -450,8 +611,8 @@ int C_Storage::InitializeStorage(long Record_times, long Totalbin)
             result[i][j] = 0;
             coag[i][j] = 0;
             frag[i][j] = 0;
-            disr[i][j] = 0;
-            hitr[i][j] = 0;
+            //disr[i][j] = 0;
+            //hitr[i][j] = 0;
             cond[i][j] = 0;
             accr[i][j] = 0;
             //Ek_evo[i][j] = 0;
@@ -459,7 +620,7 @@ int C_Storage::InitializeStorage(long Record_times, long Totalbin)
         GPratio[i] = 0;
         Evotime[i] = 0;
     }
-
+    
     return 0;
 }
 
@@ -468,8 +629,8 @@ C_Storage::~C_Storage()
     free(result);
     free(coag);
     free(frag);
-    free(disr);
-    free(hitr);
+    //free(disr);
+    //free(hitr);
     free(cond);
     free(accr);
     free(GPratio);
@@ -490,6 +651,7 @@ long findbin(double m_to_locate)
 /** define a function to find the bin for a specific mass **/
 {
     long temp;
+    
     temp = round(log(m_to_locate/m[0])/log(para->Mass_index));
     return temp;
 }
