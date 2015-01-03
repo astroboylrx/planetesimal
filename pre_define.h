@@ -70,7 +70,7 @@ using namespace std;
 #define R_star          (1.7*R_solar)
 #define T_eff           (4350)
 #define gMass_d         (100*M_earth)        // default total gas mass
-#define GPratio_d       (0.005)               // default dust-to-gas ratio
+#define GPratio_d       (0.015)               // default dust-to-gas ratio
 
 /***** global classes: *****/
 class C_Parameter {

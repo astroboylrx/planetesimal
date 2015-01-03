@@ -657,17 +657,15 @@ int initialize()
      */
     
     GPratio = para->GPratio_i;
-    if (GPratio != GPratio_d) {
-        temp = para->pMass_i / para->pMass_tot_i;
-        //printf("temp (gpmass ratio) = %f\n", temp);
-        //temp = 0.5;
-        para->pMass_tot_i = gMass_d * GPratio;
-        para->pMass_i = para->pMass_tot_i * temp;
-        para->pMass_back_i = para->pMass_tot_i - para->pMass_i;
-        // if GPratio_i isn't GPratio_d, then we'll assume the total gas mass
-        // is gMass_d, and then calculate the corresponding pMass_tot_i
-        // pMass_i will be set according to the given ratio of (pMass_i/pMass_tot_i)
+    if (GPratio > 1.0) {
+        GPratio = GPratio_d;
+        // correct unreasonable dust-to-gas ratio
     }
+    
+    temp = para->pMass_i / para->pMass_tot_i;
+    para->pMass_tot_i = gMass_d * GPratio;
+    para->pMass_i = para->pMass_tot_i * temp;
+    para->pMass_back_i = para->pMass_tot_i - para->pMass_i;
     
     pMass_tot = para->pMass_tot_i;
     pMass_back = para->pMass_back_i;

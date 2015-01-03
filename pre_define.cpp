@@ -76,7 +76,7 @@ int C_FileOp::openinput()
     if ((fi = fopen("input.txt", "r")) != NULL) {
         return 0;
     }
-    if ((fi = fopen("/Users/isaac/Documents/Dropbox/ProgramOS/Xcodestudy/planetesimal_mpi/planetesimal_mpi/input.txt", "r")) != NULL) {
+    if ((fi = fopen("/Users/rixin/Documents/Dropbox/ProgramOS/Xcodestudy/planetesimal_mpi/planetesimal_mpi/input.txt", "r")) != NULL) {
         return 0;
     }
     if ((fi = fopen("input", "r")) != NULL) {
